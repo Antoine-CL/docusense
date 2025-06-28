@@ -1,0 +1,35 @@
+{
+  "subscriptions": [
+    {
+      "id": "12345678-1234-1234-1234-123456789012",
+      "resource": "/me/drive/root",
+      "changeType": "created,updated,deleted",
+      "notificationUrl": "https://docusense-func.azurewebsites.net/api/webhook",
+      "expirationDateTime": "2025-06-28T23:22:44.122231Z",
+      "clientState": "tenant-abc123",
+      "tenantId": "default",
+      "createdDateTime": "2025-06-25T11:22:44.122250Z"
+    },
+    {
+      "id": "87654321-4321-4321-4321-210987654321",
+      "resource": "/sites/root/drives/b!abc123def456/root",
+      "changeType": "created,updated,deleted",
+      "notificationUrl": "https://docusense-func.azurewebsites.net/api/webhook",
+      "expirationDateTime": "2025-06-27T05:22:44.122254Z",
+      "clientState": "tenant-abc123",
+      "tenantId": "default",
+      "createdDateTime": "2025-06-24T11:22:44.122258Z"
+    },
+    {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "resource": "/sites/contoso.sharepoint.com,abc123,def456/drives/b!xyz789/root",
+      "changeType": "created,updated,deleted",
+      "notificationUrl": "https://docusense-func.azurewebsites.net/api/webhook",
+      "expirationDateTime": "2025-06-29T11:22:44.122261Z",
+      "clientState": "tenant-abc123",
+      "tenantId": "default",
+      "createdDateTime": "2025-06-26T05:22:44.122263Z"
+    }
+  ],
+  "lastUpdated": "2025-06-26T11:22:44.122267Z"
+}

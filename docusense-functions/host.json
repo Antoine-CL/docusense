@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "functionTimeout": "00:05:00",
+  "extensions": {
+    "http": { 
+      "routePrefix": "api" 
+    },
+    "serviceBus": {
+      "maxConcurrentCalls": 1,
+      "prefetchCount": 0
+    }
+  },
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      }
+    }
+  }
+} 

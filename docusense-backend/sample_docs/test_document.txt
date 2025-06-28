@@ -1,0 +1,31 @@
+DocuSense Test Document
+
+This is a test document for demonstrating DocuSense search capabilities.
+
+Project Management:
+- Agile methodology implementation
+- Sprint planning and retrospectives  
+- Stakeholder communication strategies
+- Risk assessment and mitigation
+
+Technology Stack:
+- React frontend with TypeScript
+- FastAPI backend with Python
+- Azure OpenAI for embeddings
+- Azure AI Search for vector storage
+- Microsoft Graph API integration
+
+Business Processes:
+- Customer onboarding workflows
+- Invoice processing automation
+- Compliance reporting procedures
+- Data governance policies
+
+Key Features:
+- Semantic search using AI embeddings
+- Multi-tenant architecture support
+- Real-time document indexing
+- Microsoft Teams integration
+- Role-based access control
+
+This document contains various topics to test different search queries and demonstrate the semantic search capabilities of DocuSense. 

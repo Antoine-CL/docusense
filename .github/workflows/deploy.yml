@@ -1,0 +1,327 @@
+name: Deploy DocuSense
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+
+env:
+  AZURE_RESOURCE_GROUP: docusense-${{ github.ref_name }}-rg
+  AZURE_LOCATION: eastus
+
+jobs:
+  infrastructure:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+
+    outputs:
+      function-app-name: ${{ steps.deploy.outputs.functionAppName }}
+      api-app-name: ${{ steps.deploy.outputs.apiAppName }}
+      static-app-name: ${{ steps.deploy.outputs.staticAppName }}
+      webhook-url: ${{ steps.deploy.outputs.webhookUrl }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Infrastructure
+        id: deploy
+        run: |
+          # Determine environment
+          ENV_NAME="${{ github.event.inputs.environment || github.ref_name }}"
+          if [ "$ENV_NAME" = "main" ]; then ENV_NAME="prod"; fi
+          if [ "$ENV_NAME" = "develop" ]; then ENV_NAME="dev"; fi
+
+          echo "Deploying to environment: $ENV_NAME"
+
+          # Create resource group
+          az group create --name $AZURE_RESOURCE_GROUP --location $AZURE_LOCATION
+
+          # Deploy Bicep template
+          DEPLOYMENT_OUTPUT=$(az deployment group create \
+            --resource-group $AZURE_RESOURCE_GROUP \
+            --template-file docusense.bicep \
+            --parameters envName=$ENV_NAME \
+                        location=$AZURE_LOCATION \
+                        searchSku=standard \
+                        funcSku=Y1 \
+                        staticSku=Free \
+                        openAiEndpoint="${{ secrets.AZURE_OPENAI_ENDPOINT }}" \
+                        openAiApiKey="${{ secrets.AZURE_OPENAI_API_KEY }}" \
+                        graphClientId="${{ secrets.GRAPH_CLIENT_ID }}" \
+                        graphClientSecret="${{ secrets.GRAPH_CLIENT_SECRET }}" \
+                        tenantId="${{ secrets.AZURE_TENANT_ID }}" \
+            --query properties.outputs \
+            --output json)
+
+          # Extract outputs
+          echo "functionAppName=$(echo $DEPLOYMENT_OUTPUT | jq -r '.functionEndpoint.value' | sed 's|https://||' | sed 's|\.azurewebsites\.net||')" >> $GITHUB_OUTPUT
+          echo "apiAppName=$(echo $DEPLOYMENT_OUTPUT | jq -r '.apiEndpoint.value' | sed 's|https://||' | sed 's|\.azurewebsites\.net||')" >> $GITHUB_OUTPUT
+          echo "staticAppName=$(echo $DEPLOYMENT_OUTPUT | jq -r '.deploymentSummary.value.staticWebApp')" >> $GITHUB_OUTPUT
+          echo "webhookUrl=$(echo $DEPLOYMENT_OUTPUT | jq -r '.webhookUrl.value')" >> $GITHUB_OUTPUT
+
+          # Save full outputs
+          echo $DEPLOYMENT_OUTPUT > deployment-outputs.json
+
+      - name: Upload deployment outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-outputs
+          path: deployment-outputs.json
+
+  function-app:
+    name: Deploy Function App
+    runs-on: ubuntu-latest
+    needs: infrastructure
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Install Azure Functions Core Tools
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+          sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
+          sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-$(lsb_release -cs)-prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list'
+          sudo apt-get update
+          sudo apt-get install azure-functions-core-tools-4
+
+      - name: Prepare Function App
+        run: |
+          cd docusense-backend
+
+          # Create function structure
+          mkdir -p function_app/webhook_handler
+          mkdir -p function_app/renewal_function
+
+          # Copy enhanced webhook handler
+          cp azure_function_webhook_enhanced.py function_app/webhook_handler/__init__.py
+          cp renewal_function.py function_app/renewal_function/__init__.py
+
+          # Copy dependencies
+          cp *.py function_app/ || true
+
+          # Create host.json
+          cat > function_app/host.json << EOF
+          {
+            "version": "2.0",
+            "functionTimeout": "00:05:00",
+            "extensions": {
+              "http": { "routePrefix": "" },
+              "serviceBus": {
+                "maxConcurrentCalls": 1,
+                "prefetchCount": 0
+              }
+            }
+          }
+          EOF
+
+          # Create requirements.txt
+          cat > function_app/requirements.txt << EOF
+          azure-functions==1.15.0
+          azure-search-documents==11.4.0
+          azure-servicebus==7.11.0
+          requests==2.31.0
+          msal==1.25.0
+          PyJWT==2.8.0
+          cryptography==41.0.8
+          python-docx==1.1.0
+          PyPDF2==3.0.1
+          openpyxl==3.1.2
+          python-pptx==0.6.23
+          EOF
+
+          # Create function.json files
+          cat > function_app/webhook_handler/function.json << EOF
+          {
+            "scriptFile": "__init__.py",
+            "bindings": [
+              {
+                "authLevel": "function",
+                "type": "httpTrigger",
+                "direction": "in",
+                "name": "req",
+                "methods": ["get", "post"]
+              },
+              {
+                "type": "http",
+                "direction": "out",
+                "name": "\$return"
+              }
+            ]
+          }
+          EOF
+
+          cat > function_app/renewal_function/function.json << EOF
+          {
+            "scriptFile": "__init__.py",
+            "bindings": [
+              {
+                "name": "mytimer",
+                "type": "timerTrigger",
+                "direction": "in",
+                "schedule": "0 0 */1 * * *"
+              }
+            ]
+          }
+          EOF
+
+      - name: Deploy Function App
+        run: |
+          cd docusense-backend/function_app
+          func azure functionapp publish ${{ needs.infrastructure.outputs.function-app-name }} --python
+
+  api-backend:
+    name: Deploy API Backend
+    runs-on: ubuntu-latest
+    needs: infrastructure
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy API Backend
+        run: |
+          cd docusense-backend
+
+          # Create startup script
+          cat > startup.sh << EOF
+          #!/bin/bash
+          python -m uvicorn main:app --host 0.0.0.0 --port 8000
+          EOF
+          chmod +x startup.sh
+
+          # Deploy using az webapp up
+          az webapp up \
+            --name ${{ needs.infrastructure.outputs.api-app-name }} \
+            --resource-group $AZURE_RESOURCE_GROUP \
+            --runtime "PYTHON:3.11" \
+            --startup-file startup.sh
+
+  frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: infrastructure
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: docusense-frontend/package-lock.json
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Download deployment outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-outputs
+
+      - name: Build and Deploy Frontend
+        run: |
+          cd docusense-frontend
+
+          # Install dependencies
+          npm ci
+
+          # Set API endpoint from deployment outputs
+          API_ENDPOINT=$(jq -r '.apiEndpoint.value' ../deployment-outputs.json)
+          echo "REACT_APP_API_BASE_URL=$API_ENDPOINT" > .env.production
+
+          # Build
+          npm run build
+
+          # Deploy to Static Web App
+          az staticwebapp deploy \
+            --name ${{ needs.infrastructure.outputs.static-app-name }} \
+            --source-location ./build \
+            --output-location ./build
+
+  post-deployment:
+    name: Post-Deployment Setup
+    runs-on: ubuntu-latest
+    needs: [infrastructure, function-app, api-backend, frontend]
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Setup Search Index
+        run: |
+          cd docusense-backend
+          pip install -r requirements.txt
+          python create_index.py
+
+      - name: Setup Webhooks
+        run: |
+          cd docusense-backend
+          export WEBHOOK_URL="${{ needs.infrastructure.outputs.webhook-url }}"
+          python setup_webhooks.py
+
+      - name: Deployment Summary
+        run: |
+          echo "🎉 DocuSense Deployment Complete!"
+          echo "=================================="
+          echo "Function App: ${{ needs.infrastructure.outputs.function-app-name }}"
+          echo "API Backend: ${{ needs.infrastructure.outputs.api-app-name }}"
+          echo "Frontend: ${{ needs.infrastructure.outputs.static-app-name }}"
+          echo "Webhook URL: ${{ needs.infrastructure.outputs.webhook-url }}"

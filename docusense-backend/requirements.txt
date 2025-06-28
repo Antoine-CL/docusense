@@ -1,0 +1,22 @@
+fastapi==0.115.6
+uvicorn==0.34.0
+openai==1.58.1
+azure-search-documents==11.8.0
+python-dotenv==1.0.1
+python-pptx==1.0.2
+python-docx==1.2.0
+PyMuPDF==1.26.1
+msal==1.32.3
+python-jose[cryptography]==3.5.0
+requests==2.32.4
+PyJWT>=2.8.0
+
+# Telemetry and monitoring (ChatGPT recommendations)
+opencensus-ext-azure>=1.1.9
+opencensus-ext-requests>=0.8.0
+applicationinsights>=0.11.10
+
+# Azure Functions and Service Bus
+azure-functions>=1.15.0
+azure-servicebus>=7.11.0
+azure-storage-blob>=12.19.0 

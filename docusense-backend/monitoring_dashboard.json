@@ -1,0 +1,209 @@
+{
+  "name": "DocuSense Production Monitoring",
+  "description": "Comprehensive monitoring dashboard for DocuSense with ChatGPT-recommended alerts",
+  "widgets": [
+    {
+      "name": "Webhook Success Rate",
+      "type": "chart",
+      "query": "requests | where cloud_RoleName contains \"docusense\" | where name contains \"webhook\" | summarize success_rate = (countif(success == true) * 100.0) / count() by bin(timestamp, 15m) | render timechart",
+      "alert": {
+        "threshold": 95,
+        "operator": "LessThan",
+        "description": "Webhook success rate below 95%"
+      }
+    },
+    {
+      "name": "Average Indexing Duration",
+      "type": "chart", 
+      "query": "customMetrics | where name == \"IndexingDurationMs\" | summarize avg_ms = avg(todouble(value)) by bin(timestamp, 5m) | render timechart",
+      "alert": {
+        "threshold": 8000,
+        "operator": "GreaterThan",
+        "description": "Average indexing time > 8 seconds"
+      }
+    },
+    {
+      "name": "Service Bus Queue Backlog",
+      "type": "chart",
+      "query": "AzureDiagnostics | where ResourceType == \"SERVICEBUSNAMESPACES\" | where MetricName == \"ActiveMessages\" | summarize max_backlog = max(todouble(Average)) by bin(TimeGenerated, 5m) | render timechart",
+      "alert": {
+        "threshold": 500,
+        "operator": "GreaterThan", 
+        "description": "Queue backlog > 500 messages"
+      }
+    },
+    {
+      "name": "Search Service Throttling",
+      "type": "chart",
+      "query": "AzureDiagnostics | where Category == \"SearchQueryLogs\" | where ResultStatusCode == 503 or ResultStatusCode == 429 | summarize count() by bin(TimeGenerated, 15m) | render timechart",
+      "alert": {
+        "threshold": 10,
+        "operator": "GreaterThan",
+        "description": "Search throttling events > 10 in 15 minutes"
+      }
+    },
+    {
+      "name": "File Processing by Size Category",
+      "type": "pie",
+      "query": "customEvents | where name == \"file_processing_success\" | extend file_size = todouble(customDimensions.file_size) | extend size_category = case(file_size <= 50000000, \"Small (≤50MB)\", file_size <= 200000000, \"Medium (51-200MB)\", \"Large (>200MB)\") | summarize count() by size_category"
+    },
+    {
+      "name": "Daily Processing Costs",
+      "type": "chart",
+      "query": "customEvents | where name == \"file_processing_success\" | extend cost = todouble(customDimensions.estimated_cost_usd) | summarize total_cost = sum(cost), file_count = count() by bin(timestamp, 1d) | extend avg_cost = total_cost / file_count | render timechart",
+      "alert": {
+        "threshold": 100,
+        "operator": "GreaterThan",
+        "description": "Daily processing cost > $100"
+      }
+    },
+    {
+      "name": "Top File Types Processed",
+      "type": "table",
+      "query": "customEvents | where name == \"file_processing_success\" | extend file_name = tostring(customDimensions.file_name) | extend file_ext = extract(@\"\\.([^.]+)$\", 1, file_name) | summarize count(), avg_size = avg(todouble(customDimensions.file_size)), total_cost = sum(todouble(customDimensions.estimated_cost_usd)) by file_ext | order by count_ desc"
+    },
+    {
+      "name": "Tenant Activity Distribution", 
+      "type": "chart",
+      "query": "customEvents | where name == \"file_processing_success\" | summarize files_processed = count(), total_size = sum(todouble(customDimensions.file_size)) by tenant_id = tostring(customDimensions.tenant_id), bin(timestamp, 1h) | render timechart"
+    },
+    {
+      "name": "Error Rate by Operation",
+      "type": "table",
+      "query": "union exceptions, traces | where severityLevel >= 3 | extend operation = coalesce(operation_Name, \"unknown\") | summarize error_count = count(), latest_error = max(timestamp) by operation | order by error_count desc"
+    },
+    {
+      "name": "Function App Performance",
+      "type": "chart", 
+      "query": "requests | where cloud_RoleName contains \"docusense\" | summarize avg_duration = avg(duration), p95_duration = percentile(duration, 95), request_count = count() by bin(timestamp, 5m) | render timechart"
+    },
+    {
+      "name": "Search Query Performance",
+      "type": "chart",
+      "query": "customEvents | where name == \"search_query_executed\" | extend duration = todouble(customDimensions.duration_ms), result_count = toint(customDimensions.result_count) | summarize avg_duration = avg(duration), avg_results = avg(result_count) by bin(timestamp, 15m) | render timechart"
+    },
+    {
+      "name": "Large File Processing Success Rate",
+      "type": "chart",
+      "query": "customEvents | where name startswith \"file_processing\" | extend processing_method = tostring(customDimensions.processing_method) | where processing_method in (\"streaming\", \"queue-based\") | summarize success_rate = (countif(name == \"file_processing_success\") * 100.0) / count() by processing_method, bin(timestamp, 1h) | render timechart"
+    },
+    {
+      "name": "Memory and Resource Usage",
+      "type": "chart",
+      "query": "performanceCounters | where counter in (\"Memory Available Bytes\", \"Processor Time\") | summarize avg_value = avg(value) by counter, bin(timestamp, 5m) | render timechart"
+    }
+  ],
+  "alerts": [
+    {
+      "name": "Webhook Failure Alert",
+      "description": "Webhook failures detected in last 15 minutes",
+      "query": "requests | where cloud_RoleName contains \"docusense\" | where name contains \"webhook\" | where success == false | summarize count()",
+      "threshold": 0,
+      "operator": "GreaterThan",
+      "frequency": "PT5M",
+      "window": "PT15M",
+      "severity": 2
+    },
+    {
+      "name": "Indexing Performance Alert", 
+      "description": "Average indexing time > 8 seconds for 2 consecutive periods",
+      "query": "customMetrics | where name == \"IndexingDurationMs\" | summarize avg_ms = avg(todouble(value)) | where avg_ms > 8000",
+      "threshold": 0,
+      "operator": "GreaterThan",
+      "frequency": "PT5M",
+      "window": "PT10M",
+      "severity": 3,
+      "consecutive_periods": 2
+    },
+    {
+      "name": "Queue Backlog Alert",
+      "description": "Service Bus queue backlog > 500 messages",
+      "query": "AzureDiagnostics | where ResourceType == \"SERVICEBUSNAMESPACES\" | where MetricName == \"ActiveMessages\" | summarize max_backlog = max(todouble(Average)) | where max_backlog > 500",
+      "threshold": 0,
+      "operator": "GreaterThan", 
+      "frequency": "PT5M",
+      "window": "PT10M",
+      "severity": 2,
+      "consecutive_periods": 2
+    },
+    {
+      "name": "Search Throttling Alert",
+      "description": "Search service throttling detected",
+      "query": "AzureDiagnostics | where Category == \"SearchQueryLogs\" | where ResultStatusCode == 503 or ResultStatusCode == 429 | summarize count()",
+      "threshold": 10,
+      "operator": "GreaterThan",
+      "frequency": "PT5M", 
+      "window": "PT15M",
+      "severity": 1
+    },
+    {
+      "name": "Daily Cost Alert",
+      "description": "Daily processing cost exceeds $100",
+      "query": "customEvents | where name == \"file_processing_success\" | extend cost = todouble(customDimensions.estimated_cost_usd) | summarize total_cost = sum(cost)",
+      "threshold": 100,
+      "operator": "GreaterThan",
+      "frequency": "PT1H",
+      "window": "P1D", 
+      "severity": 3
+    },
+    {
+      "name": "Function App Error Rate Alert",
+      "description": "Function app error rate > 5%",
+      "query": "requests | where cloud_RoleName contains \"docusense\" | summarize error_rate = (countif(success == false) * 100.0) / count() | where error_rate > 5",
+      "threshold": 0,
+      "operator": "GreaterThan",
+      "frequency": "PT5M",
+      "window": "PT15M",
+      "severity": 2
+    }
+  ],
+  "kql_queries": {
+    "webhook_failure_investigation": "requests | where cloud_RoleName contains \"docusense\" | where name contains \"webhook\" | where success == false | project timestamp, url, resultCode, duration, customDimensions | order by timestamp desc",
+    
+    "slow_indexing_analysis": "customMetrics | where name == \"IndexingDurationMs\" | where value > 8000 | join (customEvents | where name == \"file_processing_success\") on timestamp | project timestamp, duration_ms = value, file_name = customDimensions.file_name, file_size = customDimensions.file_size, processing_method = customDimensions.processing_method",
+    
+    "cost_analysis_by_tenant": "customEvents | where name == \"file_processing_success\" | extend cost = todouble(customDimensions.estimated_cost_usd), tenant = tostring(customDimensions.tenant_id) | summarize total_cost = sum(cost), file_count = count(), avg_file_size = avg(todouble(customDimensions.file_size)) by tenant | order by total_cost desc",
+    
+    "large_file_processing_stats": "customEvents | where name startswith \"file_processing\" | extend file_size = todouble(customDimensions.file_size), processing_method = tostring(customDimensions.processing_method) | where file_size > 50000000 | summarize count(), success_rate = (countif(name == \"file_processing_success\") * 100.0) / count(), avg_size = avg(file_size) by processing_method",
+    
+    "search_performance_trends": "customEvents | where name == \"search_query_executed\" | extend duration = todouble(customDimensions.duration_ms), query_length = toint(customDimensions.query_length), result_count = toint(customDimensions.result_count) | summarize avg_duration = avg(duration), avg_results = avg(result_count), query_count = count() by bin(timestamp, 1h) | render timechart",
+    
+    "error_trend_analysis": "union exceptions, traces | where severityLevel >= 3 | summarize error_count = count() by bin(timestamp, 1h), severityLevel | render timechart",
+    
+    "tenant_usage_patterns": "customEvents | where name == \"file_processing_success\" | extend tenant = tostring(customDimensions.tenant_id), hour = hourofday(timestamp) | summarize files_processed = count() by tenant, hour | evaluate pivot(hour, sum(files_processed))",
+    
+    "file_type_success_rates": "customEvents | where name startswith \"file_processing\" | extend file_name = tostring(customDimensions.file_name), file_ext = extract(@\"\\.([^.]+)$\", 1, file_name) | summarize total = count(), success = countif(name == \"file_processing_success\"), success_rate = (countif(name == \"file_processing_success\") * 100.0) / count() by file_ext | order by total desc"
+  },
+  "recommended_actions": {
+    "high_webhook_failures": [
+      "Check Microsoft Graph permissions",
+      "Verify webhook endpoint accessibility", 
+      "Review clientState validation logic",
+      "Check for API rate limiting"
+    ],
+    "slow_indexing": [
+      "Review file sizes being processed",
+      "Check Azure OpenAI service limits",
+      "Consider upgrading Function App plan",
+      "Optimize text extraction logic"
+    ],
+    "high_queue_backlog": [
+      "Scale up large file processing function",
+      "Check for stuck messages in queue",
+      "Review Service Bus configuration",
+      "Consider adding more processing instances"
+    ],
+    "search_throttling": [
+      "Upgrade Azure AI Search SKU",
+      "Implement request rate limiting",
+      "Optimize search queries",
+      "Review search index size"
+    ],
+    "high_costs": [
+      "Review file type filtering rules",
+      "Implement file size limits",
+      "Optimize embedding generation",
+      "Consider tiered processing based on file importance"
+    ]
+  }
+} 

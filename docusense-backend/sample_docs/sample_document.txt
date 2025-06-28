@@ -1,0 +1,28 @@
+DocuSense Architecture Overview
+
+DocuSense is an enterprise document search platform built for Microsoft Teams integration. The system leverages Azure OpenAI for semantic embeddings and Azure AI Search for vector storage and retrieval.
+
+Key Components:
+1. FastAPI Backend - Provides REST API endpoints for document search
+2. Azure OpenAI - Generates semantic embeddings using text-embedding-3-small model
+3. Azure AI Search - Stores and searches document vectors with hybrid search capabilities
+4. Microsoft Teams Integration - Enables seamless document discovery within Teams
+
+Technical Architecture:
+The system follows a microservices architecture with clear separation of concerns. Documents are processed through an ingestion pipeline that extracts text, chunks content into manageable pieces, generates embeddings, and stores everything in Azure AI Search.
+
+Security Features:
+- All data remains within Microsoft's trusted cloud ecosystem
+- Azure AD integration for authentication
+- GDPR and HIPAA compliance
+- Enterprise-grade security controls
+
+Use Cases:
+- Legal document discovery
+- Knowledge base search
+- Technical documentation retrieval
+- Meeting notes and presentations search
+- Contract and policy document analysis
+
+Performance:
+The system can handle thousands of documents with sub-second search response times. Vector search combined with keyword matching provides highly relevant results for complex queries. 

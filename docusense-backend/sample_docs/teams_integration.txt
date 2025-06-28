@@ -1,0 +1,33 @@
+Microsoft Teams Integration Guide
+
+This document outlines the integration process for DocuSense with Microsoft Teams, enabling users to search documents directly from their Teams interface.
+
+Integration Methods:
+1. Teams App - Custom Teams application with search interface
+2. Bot Framework - Conversational search through Teams bot
+3. Message Extensions - Search documents while composing messages
+4. Adaptive Cards - Rich document preview cards
+
+Authentication:
+The integration uses Azure Active Directory (Azure AD) for seamless single sign-on. Users authenticate once and gain access to all authorized documents across the organization.
+
+User Experience:
+Users can search documents using natural language queries directly within Teams. Results are displayed as interactive cards showing document titles, snippets, and relevance scores. Clicking a result opens the full document in the appropriate application.
+
+Deployment:
+The Teams app can be deployed organization-wide through the Teams Admin Center. IT administrators can control access permissions and configure search scopes based on user roles and departments.
+
+Benefits:
+- Reduced context switching between applications
+- Improved productivity through faster document discovery
+- Enhanced collaboration with shared search results
+- Consistent user experience across Teams and document repositories
+
+Technical Requirements:
+- Microsoft 365 subscription with Teams
+- Azure subscription for backend services
+- Azure AD tenant for authentication
+- Appropriate licenses for Azure OpenAI and Azure AI Search
+
+Support and Maintenance:
+Regular updates ensure compatibility with new Teams features. The system includes monitoring and analytics to track usage patterns and optimize search performance. 

@@ -1,0 +1,14 @@
+{
+  "default": {
+    "region": "northeurope",
+    "retentionDays": 45,
+    "created": "2025-06-26T11:22:44.119416",
+    "lastModified": "2025-06-26T15:52:11.380167"
+  },
+  "test-tenant-123": {
+    "region": "westeurope",
+    "retentionDays": 30,
+    "created": "2025-06-26T11:22:54.349890",
+    "lastModified": "2025-06-26T11:23:00.576911"
+  }
+}

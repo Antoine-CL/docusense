@@ -1,0 +1,32 @@
+# SharePoint Integration Test Document
+
+This document simulates a file that would be found in SharePoint/OneDrive to test the ingestion pipeline.
+
+## Document Discovery Test
+
+The OneDrive ingestion script should be able to:
+1. Connect to Microsoft Graph API
+2. Discover SharePoint document libraries
+3. List files in those libraries
+4. Download and process text files like this one
+
+## Content for Semantic Search
+
+DocuSense provides intelligent document search across Microsoft Teams environments. Key features include:
+
+- **Multi-tenant architecture**: Each organization gets isolated search results
+- **Semantic search**: Uses Azure OpenAI embeddings for meaning-based search
+- **Teams integration**: Seamlessly embedded as a Teams tab
+- **Real-time sync**: Automatically indexes new documents from SharePoint
+
+## Test Queries
+
+Users should be able to find this document by searching for:
+- "SharePoint integration"
+- "document discovery"
+- "Teams tab"
+- "semantic search"
+- "multi-tenant"
+- "Azure OpenAI"
+
+This content will help verify that the complete pipeline works from document ingestion through to search results. 
