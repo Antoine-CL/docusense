@@ -1,4 +1,4 @@
-name: Deploy-DocuSense
+name: Deploy-AllFind
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
   workflow_dispatch: # allow manual "Run workflow"
 
 env:
-  RG_NAME: docusense-rg
+  RG_NAME: DocuSense # Use existing resource group
   LOCATION: canadaeast
   ENV_NAME: prod # bicep param
-  STATIC_APP_NAME: docusense-web # created by bicep
-  FUNC_APP_NAME: docusense-func # created by bicep
+  STATIC_APP_NAME: docusenseswax2rij3shmxyjs # existing SWA
+  API_APP_NAME: docusenseapix2rij3shmxyjs # existing API
 
 jobs:
   deploy:
@@ -25,71 +25,59 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }} # svc-principal JSON
 
-      # ─────────────────────────────── 3. Deploy Bicep (idempotent) ──────────────
-      - name: ARM / Bicep deploy
-        run: |
-          az deployment group create \
-            --resource-group $RG_NAME \
-            --template-file docusense.bicep \
-            --parameters envName=$ENV_NAME
-
-      # ────────────────────────── 4. Build & deploy React SPA ────────────────────
+      # ────────────────────────── 3. Build React SPA ────────────────────
       - name: Node setup
         uses: actions/setup-node@v4
-        with: { node-version: "18" }
+        with:
+          node-version: "18"
 
-      - name: Build SPA
+      - name: Build AllFind SPA
         working-directory: docusense-frontend
         run: |
           npm ci
           npm run build
         env:
-          REACT_APP_API_BASE: ${{ secrets.API_BASE_URL }}
+          REACT_APP_API_BASE: https://api.allfind.ai
 
-      - name: Deploy Static Web App
-        uses: Azure/static-web-apps-deploy@v2
+      # ─────────────────────── 4. Deploy to Static Web App ──────────────────────
+      - name: Deploy AllFind Frontend
+        uses: Azure/static-web-apps-deploy@v1
         with:
-          app_location: "docusense-frontend/build"
-          api_location: "" # none – we deploy functions separately
-          skip_app_build: true # we already built
-          skip_api_build: true
           azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOY_TOKEN }}
-          # site-name must match name in bicep
-          site_name: ${{ env.STATIC_APP_NAME }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "docusense-frontend"
+          output_location: "build"
 
-          # ───────────────────────────── 5. Test Admin Endpoints ──────────────────
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with: { python-version: "3.11" }
+      # ───────────────────────────── 5. Test Admin Endpoints ──────────────────
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Install test dependencies
-      run: |
-        pip install pytest fastapi[all] httpx
+      - name: Install Backend Dependencies
+        working-directory: docusense-backend
+        run: |
+          pip install -r requirements.txt
 
-    - name: Run admin endpoint tests
-      working-directory: docusense-backend
-      run: |
-        python -m pytest ../tests/test_admin_endpoints.py -v
+      - name: Test AllFind API
+        working-directory: tests
+        run: |
+          python -m pytest test_admin_endpoints.py -v
+        env:
+          API_BASE_URL: https://api.allfind.ai
 
-    # ───────────────────────────── 6. Publish Azure Functions ──────────────────
-    - name: Install Azure Functions Core Tools
-      run: |
-        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
-        sudo mv microsoft.gpg /etc/apt/trusted.gpg.d/microsoft.gpg
-        sudo sh -c 'echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-$(lsb_release -cs)-prod $(lsb_release -cs) main" > /etc/apt/sources.list.d/dotnetdev.list'
-        sudo apt-get update
-        sudo apt-get install azure-functions-core-tools-4
+      # ──────────────────────────── 6. Deploy API to App Service ──────────────────
+      - name: Deploy AllFind API
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.API_APP_NAME }}
+          package: docusense-backend
 
-    - name: Install func dependencies
-      run: |
-        pip install azure-functions-worker==1.* azure-cli
-
-    - name: Deploy Function App
-      working-directory: docusense-functions
-      run: |
-        func azure functionapp publish $FUNC_APP_NAME --python
-
-          # ───────────────────────────── 7. Smoke test endpoint ──────────────────────
-    - name: Health probe
-      run: |
-        curl -f ${{ secrets.API_BASE_URL }}/health
+      # ──────────────────────────── 7. Health Check ──────────────────────────────
+      - name: AllFind Health Check
+        run: |
+          echo "🏥 Testing AllFind deployment..."
+          curl -f https://api.allfind.ai/health || exit 1
+          curl -f https://app.allfind.ai || exit 1
+          echo "✅ AllFind is healthy!"

@@ -1,0 +1,56 @@
+name: Test-Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ────────────────────────────────── 1. Checkout ────────────────────────────
+      - uses: actions/checkout@v4
+
+      # ────────────────────────── 2. Build React SPA ────────────────────
+      - name: Node setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Build SPA
+        working-directory: docusense-frontend
+        run: |
+          npm ci
+          npm run build
+        env:
+          REACT_APP_API_BASE: ${{ secrets.API_BASE_URL }}
+
+      # ───────────────────────────── 3. Setup Python & Backend ──────────────────
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        working-directory: docusense-backend
+        run: |
+          pip install -r requirements.txt
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest fastapi[all] httpx
+
+      - name: Run admin endpoint tests
+        working-directory: docusense-backend
+        run: |
+          python -m pytest ../tests/test_admin_endpoints.py -v
+
+      # ───────────────────────────── 4. Display build artifacts ──────────────────
+      - name: List build artifacts
+        run: |
+          echo "Frontend build artifacts:"
+          ls -la docusense-frontend/build/
+          echo "Frontend build size:"
+          du -sh docusense-frontend/build/
