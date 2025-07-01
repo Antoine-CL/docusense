@@ -20,7 +20,8 @@ app = FastAPI(title="DocuSense API", version="1.0.0")
 # Add CORS middleware for development and production
 origins = [
     "http://localhost:3000",                         # Local development
-    "https://docusense-web.azurestaticapps.net",     # Azure Static Web Apps
+    "https://app.allfind.ai",                        # AllFind production frontend
+    "https://docusense-web.azurestaticapps.net",     # Legacy Azure Static Web Apps
     "https://*.teams.microsoft.com"                  # Teams tab iframe
 ]
 

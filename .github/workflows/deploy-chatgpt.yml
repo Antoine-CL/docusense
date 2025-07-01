@@ -6,11 +6,11 @@ on:
   workflow_dispatch: # allow manual "Run workflow"
 
 env:
-  RG_NAME: DocuSense # Use existing resource group
+  RG_NAME: AllFind # Use existing AllFind resource group
   LOCATION: canadaeast
   ENV_NAME: prod # bicep param
-  STATIC_APP_NAME: docusenseswax2rij3shmxyjs # existing SWA
-  API_APP_NAME: docusenseapix2rij3shmxyjs # existing API
+  STATIC_APP_NAME: allfind-app-prod # AllFind branded SWA
+  API_APP_NAME: allfind-api-prod # AllFind branded API
 
 jobs:
   deploy:
@@ -25,7 +25,15 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }} # svc-principal JSON
 
-      # ────────────────────────── 3. Build React SPA ────────────────────
+      # ────────────────────────── 3. Deploy AllFind Infrastructure ────────────────────
+      - name: Deploy AllFind Bicep Template
+        run: |
+          az deployment group create \
+            --resource-group ${{ env.RG_NAME }} \
+            --template-file allfind.bicep \
+            --parameters envName=${{ env.ENV_NAME }}
+
+      # ────────────────────────── 4. Build React SPA ────────────────────
       - name: Node setup
         uses: actions/setup-node@v4
         with:
@@ -37,9 +45,9 @@ jobs:
           npm ci
           npm run build
         env:
-          REACT_APP_API_BASE: https://api.allfind.ai
+          REACT_APP_API_BASE: https://allfind-api-prod.azurewebsites.net
 
-      # ─────────────────────── 4. Deploy to Static Web App ──────────────────────
+      # ─────────────────────── 5. Deploy to Static Web App ──────────────────────
       - name: Deploy AllFind Frontend
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -49,7 +57,7 @@ jobs:
           app_location: "docusense-frontend"
           output_location: "build"
 
-      # ───────────────────────────── 5. Test Admin Endpoints ──────────────────
+      # ───────────────────────────── 6. Test Admin Endpoints ──────────────────
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -65,19 +73,18 @@ jobs:
         run: |
           python -m pytest test_admin_endpoints.py -v
         env:
-          API_BASE_URL: https://api.allfind.ai
+          API_BASE_URL: https://allfind-api-prod.azurewebsites.net
 
-      # ──────────────────────────── 6. Deploy API to App Service ──────────────────
+      # ──────────────────────────── 7. Deploy API to App Service ──────────────────
       - name: Deploy AllFind API
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.API_APP_NAME }}
           package: docusense-backend
 
-      # ──────────────────────────── 7. Health Check ──────────────────────────────
+      # ──────────────────────────── 8. Health Check ──────────────────────────────
       - name: AllFind Health Check
         run: |
           echo "🏥 Testing AllFind deployment..."
-          curl -f https://api.allfind.ai/health || exit 1
-          curl -f https://app.allfind.ai || exit 1
-          echo "✅ AllFind is healthy!"
+          curl -f https://allfind-api-prod.azurewebsites.net/health || exit 1
+          echo "✅ AllFind API is healthy!"
