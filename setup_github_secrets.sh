@@ -1,11 +1,11 @@
 #!/bin/bash
-# DocuSense GitHub Secrets Setup Helper
+# AllFind GitHub Secrets Setup Helper
 # This script helps configure the required secrets for CI/CD deployment
 
 set -e
 
-echo "🔐 DocuSense GitHub Secrets Setup"
-echo "=================================="
+echo "🔐 AllFind GitHub Secrets Setup"
+echo "==============================="
 echo
 
 # Check if GitHub CLI is installed
@@ -49,7 +49,7 @@ echo
 
 # Create service principal for CI/CD
 echo "🔧 Creating Azure service principal..."
-SP_NAME="DocuSense-CI-CD-$(date +%s)"
+SP_NAME="AllFind-CI-CD-$(date +%s)"
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 
 echo "   Creating service principal: $SP_NAME"
@@ -69,12 +69,12 @@ echo "✅ AZURE_CREDENTIALS secret set"
 # Get API base URL
 echo
 echo "🌐 API Base URL Configuration"
-echo "Please provide your API base URL (e.g., https://docusense-api.azurewebsites.net):"
+echo "Please provide your API base URL (e.g., https://allfind-api-prod.azurewebsites.net):"
 read -p "API_BASE_URL: " API_BASE_URL
 
 if [[ -z "$API_BASE_URL" ]]; then
-    echo "⚠️  Using default: https://docusense-api.azurewebsites.net"
-    API_BASE_URL="https://docusense-api.azurewebsites.net"
+    echo "⚠️  Using default: https://allfind-api-prod.azurewebsites.net"
+    API_BASE_URL="https://allfind-api-prod.azurewebsites.net"
 fi
 
 gh secret set API_BASE_URL --body "$API_BASE_URL"

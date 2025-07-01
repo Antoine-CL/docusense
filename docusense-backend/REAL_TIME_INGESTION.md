@@ -45,7 +45,7 @@ python webhook_handler.py
 
 ```bash
 # Set your public webhook URL
-export WEBHOOK_URL="https://your-docusense-api.azurewebsites.net/api/webhooks/graph"
+export WEBHOOK_URL="https://your-allfind-api.azurewebsites.net/api/webhooks/graph"
 
 # Create subscriptions for all drives
 python setup_webhooks.py setup
@@ -61,7 +61,7 @@ python setup_webhooks.py cleanup
 
 ```bash
 # Add to .env file
-WEBHOOK_URL=https://your-docusense-api.azurewebsites.net/api/webhooks/graph
+WEBHOOK_URL=https://your-allfind-api.azurewebsites.net/api/webhooks/graph
 WEBHOOK_CLIENT_STATE=your-secret-validation-token
 ```
 

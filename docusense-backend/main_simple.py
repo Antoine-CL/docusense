@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import json
 
-app = FastAPI(title="DocuSense API", version="1.0.0")
+app = FastAPI(title="AllFind API", version="1.0.0")
 
 # Add CORS middleware for development and production
 origins = [
@@ -88,7 +88,7 @@ def check_admin_role(user_claims):
 # Health check endpoint
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "message": "DocuSense API is running"}
+    return {"status": "healthy", "message": "AllFind API is running"}
 
 # Simple search endpoint for testing
 @app.post("/search")
@@ -97,7 +97,7 @@ async def search(req: SearchRequest, user_claims=Depends(simple_auth_dependency)
     mock_results = [
         {
             "title": "Teams Integration Guide",
-            "snippet": "Learn how to integrate DocuSense with Microsoft Teams...",
+            "snippet": "Learn how to integrate AllFind with Microsoft Teams...",
             "score": 0.95
         },
         {

@@ -4,7 +4,7 @@
 
 set -e
 
-echo "🔐 DocuSense Azure AD Local Setup"
+echo "🔐 AllFind Azure AD Local Setup"
 echo "=================================="
 echo
 echo "This script will help you set up Azure AD authentication for local testing."
@@ -38,7 +38,7 @@ echo
 
 # Create API App Registration
 echo "🔧 Creating API App Registration..."
-API_APP_NAME="DocuSense-API-Local"
+API_APP_NAME="AllFind-API-Local"
 
 # Check if app already exists
 EXISTING_API_APP=$(az ad app list --display-name "$API_APP_NAME" --query "[0].appId" -o tsv 2>/dev/null || echo "")
@@ -61,13 +61,13 @@ else
     echo "   Adding API scope..."
     az ad app update --id "$API_CLIENT_ID" --set api.oauth2PermissionScopes='[
         {
-            "adminConsentDescription": "Access DocuSense API",
-            "adminConsentDisplayName": "Access DocuSense API",
+            "adminConsentDescription": "Access AllFind API",
+            "adminConsentDisplayName": "Access AllFind API",
             "id": "'$(uuidgen)'",
             "isEnabled": true,
             "type": "User",
-            "userConsentDescription": "Access DocuSense API",
-            "userConsentDisplayName": "Access DocuSense API",
+            "userConsentDescription": "Access AllFind API",
+            "userConsentDisplayName": "Access AllFind API",
             "value": "api.access"
         }
     ]'
@@ -88,7 +88,7 @@ fi
 
 # Create SPA App Registration
 echo "🌐 Creating SPA App Registration..."
-SPA_APP_NAME="DocuSense-SPA-Local"
+SPA_APP_NAME="AllFind-SPA-Local"
 
 # Check if app already exists
 EXISTING_SPA_APP=$(az ad app list --display-name "$SPA_APP_NAME" --query "[0].appId" -o tsv 2>/dev/null || echo "")

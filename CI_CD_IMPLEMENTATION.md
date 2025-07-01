@@ -83,7 +83,7 @@ Configure these in GitHub repository settings:
 | ------------------- | ------------------------------- | --------------------------------------------------------------------------------- |
 | `AZURE_CREDENTIALS` | Service principal JSON          | `{"clientId":"...","clientSecret":"...","subscriptionId":"...","tenantId":"..."}` |
 | `SWA_DEPLOY_TOKEN`  | Static Web App deployment token | From Azure Portal → Static Web App → Deployment tokens                            |
-| `API_BASE_URL`      | Backend API endpoint            | `https://docusense-api.azurewebsites.net`                                         |
+| `API_BASE_URL`      | Backend API endpoint            | `https://allfind-api-prod.azurewebsites.net`                                      |
 
 ### Creating Service Principal
 

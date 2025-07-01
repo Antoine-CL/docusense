@@ -15,7 +15,7 @@ from audit_logger import generate_audit_csv
 # Import authentication modules
 from auth_verified import auth_dependency, lenient_auth_dependency
 
-app = FastAPI(title="DocuSense API", version="1.0.0")
+app = FastAPI(title="AllFind API", version="1.0.0")
 
 # Add CORS middleware for development and production
 origins = [
@@ -93,7 +93,7 @@ async def health():
     auth_mode = "simple" if USE_SIMPLE_AUTH else "production"
     return {
         "status": "healthy", 
-        "message": "DocuSense API is running",
+        "message": "AllFind API is running",
         "auth_mode": auth_mode
     }
 
@@ -104,7 +104,7 @@ async def search(req: SearchRequest, user_claims=Depends(current_auth_dependency
     mock_results = [
         {
             "title": "Teams Integration Guide",
-            "snippet": "Learn how to integrate DocuSense with Microsoft Teams...",
+            "snippet": "Learn how to integrate AllFind with Microsoft Teams...",
             "score": 0.95
         },
         {

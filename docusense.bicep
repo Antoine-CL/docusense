@@ -1,4 +1,4 @@
-// DocuSense shared multi-tenant SaaS stack
+// AllFind shared multi-tenant SaaS stack
 // deploy with: az deployment group create -g <rg> -f docusense.bicep -p envName=<dev|stage|prod>
 
 @description('Environment tag (dev,stage,prod)')
@@ -128,7 +128,7 @@ resource funcApp 'Microsoft.Web/sites@2022-09-01' = {
         { name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING', value: 'DefaultEndpointsProtocol=https;AccountName=${storage.name};AccountKey=${storage.listKeys().keys[0].value};EndpointSuffix=core.windows.net' }
         { name: 'WEBSITE_CONTENTSHARE', value: toLower(funcName) }
         
-        // DocuSense specific settings
+        // AllFind specific settings
         { name: 'AZURE_SEARCH_ENDPOINT', value: 'https://${searchName}.search.windows.net' }
         { name: 'AZURE_SEARCH_INDEX_NAME', value: 'docusense-index' }
         { name: 'AZURE_SEARCH_KEY', value: search.listAdminKeys().primaryKey }
@@ -174,7 +174,7 @@ resource apiSite 'Microsoft.Web/sites@2022-09-01' = {
         { name: 'WEBSITES_PORT', value: '8000' }
         { name: 'SCM_DO_BUILD_DURING_DEPLOYMENT', value: 'true' }
         
-        // DocuSense API settings
+        // AllFind API settings
         { name: 'AZURE_SEARCH_ENDPOINT', value: 'https://${searchName}.search.windows.net' }
         { name: 'AZURE_SEARCH_INDEX_NAME', value: 'docusense-index' }
         { name: 'AZURE_SEARCH_KEY', value: search.listAdminKeys().primaryKey }
@@ -295,7 +295,7 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
   name: 'docusense-alerts-${suffix}'
   location: 'Global'
   properties: {
-    groupShortName: 'DocuSense'
+    groupShortName: 'AllFind'
     enabled: true
     emailReceivers: [
       {

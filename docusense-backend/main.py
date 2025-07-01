@@ -7,7 +7,7 @@ from auth_verified import auth_dependency, lenient_auth_dependency
 from datetime import datetime, timedelta
 import json
 
-app = FastAPI(title="DocuSense API", version="1.0.0")
+app = FastAPI(title="AllFind API", version="1.0.0")
 
 # Add CORS middleware for development and production
 origins = [
@@ -83,7 +83,7 @@ def check_admin_role(user_claims):
 # Health check endpoint (no auth required)
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "message": "DocuSense API is running"}
+    return {"status": "healthy", "message": "AllFind API is running"}
 
 # Protected search endpoint (requires Azure AD token with specific scope)
 @app.post("/search", dependencies=[Depends(auth_dependency)])

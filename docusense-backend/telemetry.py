@@ -1,5 +1,5 @@
 """
-DocuSense Telemetry Module
+AllFind Telemetry Module
 Implements ChatGPT's best-practice logging for production monitoring
 """
 
@@ -24,7 +24,7 @@ except ImportError:
     AZURE_LOGGING_AVAILABLE = False
     print("⚠️  Azure logging not available. Install: pip install opencensus-ext-azure")
 
-class DocuSenseLogger:
+class AllFindLogger:
     """Enhanced logger with Application Insights integration"""
     
     def __init__(self, name: str = "docusense"):
@@ -247,7 +247,7 @@ class DocuSenseLogger:
         )
 
 # Global logger instance
-logger = DocuSenseLogger()
+logger = AllFindLogger()
 
 def track_performance(operation_name: str):
     """Decorator to track operation performance"""

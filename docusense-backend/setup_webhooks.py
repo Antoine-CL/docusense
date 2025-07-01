@@ -21,7 +21,7 @@ def setup_webhooks():
     
     if webhook_url == "https://your-app.com/api/webhooks/graph":
         print("❌ Please set WEBHOOK_URL environment variable to your public webhook endpoint")
-        print("Example: https://your-docusense-api.azurewebsites.net/api/webhooks/graph")
+        print("Example: https://your-allfind-api.azurewebsites.net/api/webhooks/graph")
         return
     
     # Get all accessible drives
